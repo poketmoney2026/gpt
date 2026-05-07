@@ -20,7 +20,6 @@ const uses = [
   "Travel",
 ];
 
-const PRICE_PER_DAY = 5;
 const WHATSAPP_NUMBER = "8801741815153";
 
 const Page = () => {
@@ -31,13 +30,15 @@ const Page = () => {
   });
 
   const [selectedUses, setSelectedUses] = useState([]);
+  const [packageType, setPackageType] = useState("share");
   const [days, setDays] = useState(7);
   const [showToast, setShowToast] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedAt, setGeneratedAt] = useState(new Date());
 
-  const totalBalance = days * PRICE_PER_DAY;
+  const pricePerDay = packageType === "personal" ? 8 : 5;
+  const totalBalance = days * pricePerDay;
 
   const isFormComplete =
     formData.name.trim() &&
@@ -71,14 +72,24 @@ const Page = () => {
 👤 Name: ${formData.name}
 📞 Number: ${formData.number}
 📧 Email: ${formData.email}
+📦 Package: ${packageType === "personal" ? "Personal" : "Share"}
 ⏳ Duration: ${days} day${days > 1 ? "s" : ""}
-💸 Price: ৳${PRICE_PER_DAY}/day
+💸 Price: ৳${pricePerDay}/day
 🧾 Total Bill: ৳${totalBalance}
 🛠️ Use For: ${selectedUses.join(", ")}
 📅 Date: ${formattedDate}
 ⏰ Time: ${formattedTime}
 💳 Payment: No`;
-  }, [formData, days, totalBalance, selectedUses, formattedDate, formattedTime]);
+  }, [
+    formData,
+    packageType,
+    days,
+    pricePerDay,
+    totalBalance,
+    selectedUses,
+    formattedDate,
+    formattedTime,
+  ]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -187,20 +198,6 @@ const Page = () => {
           }
         }
 
-        @keyframes scanDown {
-          0% {
-            transform: translateY(-100%);
-            opacity: 0;
-          }
-          25% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(100vh);
-            opacity: 0;
-          }
-        }
-
         @keyframes spinGlow {
           to {
             transform: rotate(360deg);
@@ -226,11 +223,6 @@ const Page = () => {
           style={{ animation: "fallingGrid 3.2s linear infinite" }}
         />
       </div>
-
-      <div
-        className="pointer-events-none absolute left-0 right-0 top-0 h-36 bg-gradient-to-b from-emerald-300/20 via-cyan-300/10 to-transparent"
-        style={{ animation: "scanDown 4s linear infinite" }}
-      />
 
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 bg-emerald-400/10 blur-[90px]" />
 
@@ -273,6 +265,33 @@ const Page = () => {
               className="h-9 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
+            {/* Package Type */}
+            <div className="grid grid-cols-2 gap-1.5 border border-white/10 bg-white/[0.07] p-1.5">
+              <button
+                type="button"
+                onClick={() => setPackageType("share")}
+                className={`h-8 border text-[10px] font-semibold uppercase tracking-widest transition ${
+                  packageType === "share"
+                    ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_14px_rgba(52,211,153,0.25)]"
+                    : "border-white/10 bg-white/[0.05] text-emerald-100/60 hover:border-emerald-300/50 hover:bg-emerald-300/10"
+                }`}
+              >
+                Share
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPackageType("personal")}
+                className={`h-8 border text-[10px] font-semibold uppercase tracking-widest transition ${
+                  packageType === "personal"
+                    ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_14px_rgba(52,211,153,0.25)]"
+                    : "border-white/10 bg-white/[0.05] text-emerald-100/60 hover:border-emerald-300/50 hover:bg-emerald-300/10"
+                }`}
+              >
+                Personal
+              </button>
+            </div>
+
             {/* Days */}
             <div className="border border-white/10 bg-white/[0.07] px-3 py-2">
               <div className="mb-1 flex items-center justify-between">
@@ -308,7 +327,7 @@ const Page = () => {
                 </p>
 
                 <span className="text-[10px] text-cyan-200">
-                  ৳{PRICE_PER_DAY}/day
+                  ৳{pricePerDay}/day
                 </span>
               </div>
 
@@ -318,7 +337,7 @@ const Page = () => {
                 </h2>
 
                 <p className="text-[9px] text-emerald-100/70">
-                  {days} × ৳{PRICE_PER_DAY}
+                  {days} × ৳{pricePerDay}
                 </p>
               </div>
             </div>
