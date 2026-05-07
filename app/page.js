@@ -3,13 +3,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 const uses = [
-  "CodeX",
+  "Code X",
   "Image",
   "Study",
   "Analysis",
   "Writing",
   "Business",
-  "Researge",
+  "Research",
   "Other",
 ];
 
@@ -26,9 +26,10 @@ const Page = () => {
   const [selectedUses, setSelectedUses] = useState([]);
   const [days, setDays] = useState(7);
   const [planType, setPlanType] = useState("share");
-  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [generatedAt, setGeneratedAt] = useState(new Date());
 
   const pricePerDay = planType === "personal" ? 8 : 5;
@@ -94,6 +95,14 @@ Payment: No`;
     };
   }, []);
 
+  const showToast = (message) => {
+    setToastMessage(message);
+
+    setTimeout(() => {
+      setToastMessage("");
+    }, 2000);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
@@ -133,11 +142,35 @@ Payment: No`;
 
     window.open(whatsappUrl, "_blank");
 
-    setShowToast(true);
+    showToast("WhatsApp opened successfully");
+  };
 
-    setTimeout(() => {
-      setShowToast(false);
-    }, 2000);
+  const handleCopy = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(previewText);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = previewText;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+
+      setIsCopied(true);
+      showToast("Copy successful");
+
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 900);
+    } catch {
+      showToast("Copy failed");
+    }
   };
 
   return (
@@ -154,7 +187,7 @@ Payment: No`;
           -webkit-appearance: none;
           appearance: none;
           width: 100%;
-          height: 4px;
+          height: 5px;
           outline: none;
           background: linear-gradient(
             90deg,
@@ -166,8 +199,8 @@ Payment: No`;
         input[type="range"]::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 14px;
-          height: 14px;
+          width: 15px;
+          height: 15px;
           background: #a7f3d0;
           border: 2px solid #10b981;
           cursor: pointer;
@@ -175,8 +208,8 @@ Payment: No`;
         }
 
         input[type="range"]::-moz-range-thumb {
-          width: 14px;
-          height: 14px;
+          width: 15px;
+          height: 15px;
           background: #a7f3d0;
           border: 2px solid #10b981;
           cursor: pointer;
@@ -207,6 +240,21 @@ Payment: No`;
             opacity: 1;
           }
         }
+
+        @keyframes copyPulse {
+          0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 rgba(52, 211, 153, 0);
+          }
+          50% {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(52, 211, 153, 0.55);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 rgba(52, 211, 153, 0);
+          }
+        }
       `}</style>
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.28),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.22),transparent_34%),linear-gradient(135deg,#071a2f_0%,#082f2a_45%,#0f172a_100%)]" />
@@ -220,9 +268,9 @@ Payment: No`;
 
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 bg-emerald-400/10 blur-[90px]" />
 
-      {showToast && (
-        <div className="fixed left-1/2 top-4 z-[70] -translate-x-1/2 border border-emerald-300/50 bg-emerald-950/90 px-4 py-2 text-[11px] text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.35)]">
-          WhatsApp opened successfully
+      {toastMessage && (
+        <div className="fixed left-1/2 top-4 z-[70] -translate-x-1/2 border border-emerald-300/60 bg-emerald-950/90 px-4 py-2 text-[11px] text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.35)]">
+          {toastMessage}
         </div>
       )}
 
@@ -238,7 +286,7 @@ Payment: No`;
               placeholder="Name"
               value={formData.name}
               onChange={handleInputChange}
-              className="h-8 w-full border border-emerald-300/35 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-emerald-300/45 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
             <input
@@ -247,7 +295,7 @@ Payment: No`;
               placeholder="Number"
               value={formData.number}
               onChange={handleInputChange}
-              className="h-8 w-full border border-emerald-300/35 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-emerald-300/45 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
             <input
@@ -256,7 +304,7 @@ Payment: No`;
               placeholder="Email"
               value={formData.email}
               onChange={handleInputChange}
-              className="h-8 w-full border border-emerald-300/35 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-emerald-300/45 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
             <input
@@ -265,10 +313,10 @@ Payment: No`;
               placeholder="Device Name"
               value={formData.deviceName}
               onChange={handleInputChange}
-              className="h-8 w-full border border-emerald-300/35 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-emerald-300/45 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
-            <div className="border border-emerald-300/35 bg-white/[0.07] px-2.5 py-2">
+            <div className="border border-emerald-300/45 bg-white/[0.07] px-2.5 py-2">
               <label className="mb-1.5 block text-[9px] uppercase tracking-widest text-emerald-100/80">
                 Package Type
               </label>
@@ -280,7 +328,7 @@ Payment: No`;
                   className={`h-8 border text-[10px] font-medium uppercase tracking-wider transition-all ${
                     planType === "share"
                       ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.25)]"
-                      : "border-emerald-300/35 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/80 hover:bg-emerald-300/10"
+                      : "border-emerald-300/45 bg-white/[0.06] text-emerald-100/80 hover:border-emerald-300 hover:bg-emerald-300/10"
                   }`}
                 >
                   Share
@@ -292,7 +340,7 @@ Payment: No`;
                   className={`h-8 border text-[10px] font-medium uppercase tracking-wider transition-all ${
                     planType === "personal"
                       ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.25)]"
-                      : "border-emerald-300/35 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/80 hover:bg-emerald-300/10"
+                      : "border-emerald-300/45 bg-white/[0.06] text-emerald-100/80 hover:border-emerald-300 hover:bg-emerald-300/10"
                   }`}
                 >
                   Personal
@@ -300,15 +348,18 @@ Payment: No`;
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-1.5">
-              <div className="border border-emerald-300/35 bg-white/[0.07] px-2.5 py-2">
-                <div className="mb-1 flex items-center justify-between">
-                  <label className="text-[9px] uppercase tracking-widest text-emerald-100/80">
-                    Days
-                  </label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="border border-emerald-300/45 bg-white/[0.07] px-2.5 py-2">
+                <p className="text-[9px] uppercase tracking-widest text-emerald-100/80">
+                  Days
+                </p>
 
-                  <span className="text-[9px] font-semibold text-emerald-300">
+                <div className="my-1 flex items-end gap-1">
+                  <h2 className="text-2xl font-bold leading-none text-emerald-200">
                     {days}
+                  </h2>
+                  <span className="text-[11px] font-semibold text-emerald-300">
+                    day{days > 1 ? "s" : ""}
                   </span>
                 </div>
 
@@ -320,33 +371,26 @@ Payment: No`;
                   onChange={(e) => setDays(Number(e.target.value))}
                   className="cursor-pointer"
                 />
-
-                <div className="mt-1 flex justify-between text-[8px] text-emerald-100/35">
-                  <span>1</span>
-                  <span>30</span>
-                </div>
               </div>
 
-              <div className="border border-emerald-300/35 bg-gradient-to-r from-emerald-400/15 to-cyan-400/10 px-2.5 py-2">
+              <div className="border border-emerald-300/45 bg-gradient-to-r from-emerald-400/15 to-cyan-400/10 px-2.5 py-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[9px] uppercase tracking-widest text-emerald-100">
                     Balance
                   </p>
-
-                  <span className="text-[8px] text-cyan-200">
-                    ৳{pricePerDay}/day
-                  </span>
                 </div>
 
-                <div className="mt-2">
-                  <h2 className="text-lg font-bold text-emerald-200">
-                    ৳{totalBalance}
-                  </h2>
+                <h2 className="mt-1 text-2xl font-bold leading-none text-emerald-200">
+                  ৳{totalBalance}
+                </h2>
 
-                  <p className="text-[8px] text-emerald-100/70">
-                    {days} × ৳{pricePerDay}
-                  </p>
-                </div>
+                <p className="mt-1 text-[11px] font-semibold text-cyan-200">
+                  ৳{pricePerDay}/day
+                </p>
+
+                <p className="text-[9px] text-emerald-100/70">
+                  {days} × ৳{pricePerDay}
+                </p>
               </div>
             </div>
           </div>
@@ -370,7 +414,7 @@ Payment: No`;
                     className={`min-h-[28px] border px-1 text-[10px] transition-all duration-200 ${
                       isSelected
                         ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.25)]"
-                        : "border-emerald-300/35 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/80 hover:bg-emerald-300/10"
+                        : "border-emerald-300/45 bg-white/[0.06] text-emerald-100/80 hover:border-emerald-300 hover:bg-emerald-300/10"
                     }`}
                   >
                     {item}
@@ -386,7 +430,7 @@ Payment: No`;
             className={`mt-3 h-9 w-full border text-[11px] font-bold uppercase tracking-[0.22em] transition ${
               isFormComplete
                 ? "border-emerald-200 bg-gradient-to-r from-emerald-300 to-cyan-300 text-slate-950 shadow-[0_0_25px_rgba(45,212,191,0.25)] hover:brightness-110 active:scale-[0.99]"
-                : "cursor-not-allowed border-emerald-300/20 bg-white/[0.07] text-white/30"
+                : "cursor-not-allowed border-emerald-300/30 bg-white/[0.07] text-white/30"
             }`}
           >
             Generate
@@ -396,7 +440,7 @@ Payment: No`;
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-md">
-          <div className="w-full max-w-[330px] border border-emerald-300/30 bg-gradient-to-br from-slate-900 via-emerald-950 to-cyan-950 p-4 shadow-[0_0_55px_rgba(52,211,153,0.22)]">
+          <div className="w-full max-w-[330px] border border-emerald-300/40 bg-gradient-to-br from-slate-900 via-emerald-950 to-cyan-950 p-4 shadow-[0_0_55px_rgba(52,211,153,0.22)]">
             {isLoading ? (
               <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
                 <div
@@ -439,16 +483,31 @@ Payment: No`;
                 <textarea
                   value={previewText}
                   readOnly
-                  className="h-56 w-full resize-none border border-emerald-300/35 bg-white/[0.08] p-3 text-[11px] leading-5 text-emerald-50 outline-none"
+                  className="h-52 w-full resize-none border border-emerald-300/35 bg-white/[0.08] p-3 text-[11px] leading-5 text-emerald-50 outline-none"
                 />
 
-                <button
-                  type="button"
-                  onClick={handleSendWhatsApp}
-                  className="mt-3 h-10 w-full border border-emerald-200 bg-gradient-to-r from-emerald-300 to-cyan-300 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-950 transition hover:brightness-110 active:scale-[0.99]"
-                >
-                  Send
-                </button>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    className="h-10 border border-emerald-200 bg-white/[0.08] text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-100 transition hover:bg-emerald-300/15 active:scale-[0.98]"
+                    style={{
+                      animation: isCopied
+                        ? "copyPulse 0.55s ease-in-out"
+                        : "none",
+                    }}
+                  >
+                    {isCopied ? "Copied" : "Copy"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSendWhatsApp}
+                    className="h-10 border border-emerald-200 bg-gradient-to-r from-emerald-300 to-cyan-300 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-950 transition hover:brightness-110 active:scale-[0.99]"
+                  >
+                    Go WhatsApp
+                  </button>
+                </div>
               </>
             )}
           </div>
