@@ -35,6 +35,7 @@ const Page = () => {
   const [showToast, setShowToast] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [generatedAt, setGeneratedAt] = useState(new Date());
 
   const totalBalance = days * PRICE_PER_DAY;
 
@@ -46,20 +47,38 @@ const Page = () => {
 
   const rangePercent = ((days - 1) / 29) * 100;
 
+  const formattedDate = useMemo(() => {
+    return generatedAt.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      timeZone: "Asia/Dhaka",
+    });
+  }, [generatedAt]);
+
+  const formattedTime = useMemo(() => {
+    return generatedAt.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Dhaka",
+    });
+  }, [generatedAt]);
+
   const previewText = useMemo(() => {
-    return `Package Generate Request
-
-Name: ${formData.name}
-Number: ${formData.number}
-Email: ${formData.email}
-
-Duration: ${days} day${days > 1 ? "s" : ""}
-Price: ${days} × ৳${PRICE_PER_DAY}
-Total Bill: ৳${totalBalance}
-
-Use For:
-${selectedUses.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
-  }, [formData, days, totalBalance, selectedUses]);
+    return `🤖 ChatGPT User Info
+👤 Name: ${formData.name}
+📞 Number: ${formData.number}
+📧 Email: ${formData.email}
+⏳ Duration: ${days} day${days > 1 ? "s" : ""}
+💸 Price: ৳${PRICE_PER_DAY}/day
+🧾 Total Bill: ৳${totalBalance}
+🛠️ Use For: ${selectedUses.join(", ")}
+📅 Date: ${formattedDate}
+⏰ Time: ${formattedTime}
+💳 Payment: No`;
+  }, [formData, days, totalBalance, selectedUses, formattedDate, formattedTime]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -93,6 +112,8 @@ ${selectedUses.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
 
     if (!isFormComplete) return;
 
+    const now = new Date();
+    setGeneratedAt(now);
     setIsModalOpen(true);
     setIsLoading(true);
 
@@ -197,7 +218,6 @@ ${selectedUses.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
         }
       `}</style>
 
-      {/* Animated Background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.28),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.22),transparent_34%),linear-gradient(135deg,#071a2f_0%,#082f2a_45%,#0f172a_100%)]" />
 
       <div className="pointer-events-none absolute inset-0 opacity-80">
@@ -254,8 +274,8 @@ ${selectedUses.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
             />
 
             {/* Days */}
-            <div className="border border-white/10 bg-white/[0.07] px-3 py-3">
-              <div className="mb-2 flex items-center justify-between">
+            <div className="border border-white/10 bg-white/[0.07] px-3 py-2">
+              <div className="mb-1 flex items-center justify-between">
                 <label className="text-[10px] uppercase tracking-widest text-emerald-100/80">
                   Days
                 </label>
@@ -274,7 +294,7 @@ ${selectedUses.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
                 className="cursor-pointer"
               />
 
-              <div className="mt-2 flex justify-between text-[8px] text-emerald-100/35">
+              <div className="mt-1 flex justify-between text-[8px] text-emerald-100/35">
                 <span>1</span>
                 <span>30</span>
               </div>
@@ -306,14 +326,10 @@ ${selectedUses.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
 
           {/* Use */}
           <div className="mt-4">
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2">
               <p className="text-[10px] uppercase tracking-widest text-emerald-100/80">
                 Use
               </p>
-
-              <span className="border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] text-emerald-200">
-                {selectedUses.length} selected
-              </span>
             </div>
 
             <div className="grid grid-cols-3 gap-1.5">
