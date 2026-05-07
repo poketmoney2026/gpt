@@ -3,14 +3,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 const uses = [
+  "CodeX",
   "Image",
-  "Code",
-  "Analysis",
   "Study",
+  "Analysis",
   "Writing",
-  "Email",
   "Business",
-  "Research",
+  "Researge",
+  "Other",
 ];
 
 const WHATSAPP_NUMBER = "8801741815153";
@@ -20,6 +20,7 @@ const Page = () => {
     name: "",
     number: "",
     email: "",
+    deviceName: "",
   });
 
   const [selectedUses, setSelectedUses] = useState([]);
@@ -37,6 +38,7 @@ const Page = () => {
     formData.name.trim() &&
     formData.number.trim() &&
     formData.email.trim() &&
+    formData.deviceName.trim() &&
     selectedUses.length > 0;
 
   const rangePercent = ((days - 1) / 29) * 100;
@@ -61,18 +63,18 @@ const Page = () => {
   }, [generatedAt]);
 
   const previewText = useMemo(() => {
-    return `1. ChatGPT User Info
-2. Name: ${formData.name}
-3. Number: ${formData.number}
-4. Email: ${formData.email}
-5. Package: ${planType === "share" ? "Share" : "Personal"}
-6. Duration: ${days} day${days > 1 ? "s" : ""}
-7. Price: ৳${pricePerDay}/day
-8. Total Bill: ৳${totalBalance}
-9. Use For: ${selectedUses.join(", ")}
-10. Date: ${formattedDate}
-11. Time: ${formattedTime}
-12. Payment: No`;
+    return `Name: ${formData.name}
+Number: ${formData.number}
+Email: ${formData.email}
+Device Name: ${formData.deviceName}
+Package: ${planType === "share" ? "Share" : "Personal"}
+Duration: ${days} day${days > 1 ? "s" : ""}
+Price: ৳${pricePerDay}/day
+Total Bill: ৳${totalBalance}
+Use For: ${selectedUses.join(", ")}
+Date: ${formattedDate}
+Time: ${formattedTime}
+Payment: No`;
   }, [
     formData,
     planType,
@@ -227,7 +229,7 @@ const Page = () => {
       <div className="relative z-10 flex h-full items-center justify-center px-4">
         <form
           onSubmit={handleGenerate}
-          className="w-full max-w-[292px] border border-emerald-300/25 bg-gradient-to-br from-cyan-950/55 via-emerald-950/45 to-slate-900/60 p-3 shadow-[0_0_45px_rgba(16,185,129,0.18)] backdrop-blur-2xl sm:max-w-[305px]"
+          className="w-full max-w-[292px] border border-emerald-300/40 bg-gradient-to-br from-cyan-950/55 via-emerald-950/45 to-slate-900/60 p-3 shadow-[0_0_45px_rgba(16,185,129,0.18)] backdrop-blur-2xl sm:max-w-[305px]"
         >
           <div className="space-y-2">
             <input
@@ -236,7 +238,7 @@ const Page = () => {
               placeholder="Name"
               value={formData.name}
               onChange={handleInputChange}
-              className="h-8 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-emerald-300/35 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
             <input
@@ -245,7 +247,7 @@ const Page = () => {
               placeholder="Number"
               value={formData.number}
               onChange={handleInputChange}
-              className="h-8 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-emerald-300/35 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
             <input
@@ -254,10 +256,19 @@ const Page = () => {
               placeholder="Email"
               value={formData.email}
               onChange={handleInputChange}
-              className="h-8 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-emerald-300/35 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
-            <div className="border border-white/10 bg-white/[0.07] px-2.5 py-2">
+            <input
+              name="deviceName"
+              type="text"
+              placeholder="Device Name"
+              value={formData.deviceName}
+              onChange={handleInputChange}
+              className="h-8 w-full border border-emerald-300/35 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+            />
+
+            <div className="border border-emerald-300/35 bg-white/[0.07] px-2.5 py-2">
               <label className="mb-1.5 block text-[9px] uppercase tracking-widest text-emerald-100/80">
                 Package Type
               </label>
@@ -269,7 +280,7 @@ const Page = () => {
                   className={`h-8 border text-[10px] font-medium uppercase tracking-wider transition-all ${
                     planType === "share"
                       ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.25)]"
-                      : "border-white/10 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/50 hover:bg-emerald-300/10"
+                      : "border-emerald-300/35 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/80 hover:bg-emerald-300/10"
                   }`}
                 >
                   Share
@@ -281,7 +292,7 @@ const Page = () => {
                   className={`h-8 border text-[10px] font-medium uppercase tracking-wider transition-all ${
                     planType === "personal"
                       ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.25)]"
-                      : "border-white/10 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/50 hover:bg-emerald-300/10"
+                      : "border-emerald-300/35 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/80 hover:bg-emerald-300/10"
                   }`}
                 >
                   Personal
@@ -289,51 +300,53 @@ const Page = () => {
               </div>
             </div>
 
-            <div className="border border-white/10 bg-white/[0.07] px-2.5 py-2">
-              <div className="mb-1 flex items-center justify-between">
-                <label className="text-[9px] uppercase tracking-widest text-emerald-100/80">
-                  Days
-                </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="border border-emerald-300/35 bg-white/[0.07] px-2.5 py-2">
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="text-[9px] uppercase tracking-widest text-emerald-100/80">
+                    Days
+                  </label>
 
-                <span className="text-[10px] font-semibold text-emerald-300">
-                  {days} day{days > 1 ? "s" : ""}
-                </span>
+                  <span className="text-[9px] font-semibold text-emerald-300">
+                    {days}
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="1"
+                  max="30"
+                  value={days}
+                  onChange={(e) => setDays(Number(e.target.value))}
+                  className="cursor-pointer"
+                />
+
+                <div className="mt-1 flex justify-between text-[8px] text-emerald-100/35">
+                  <span>1</span>
+                  <span>30</span>
+                </div>
               </div>
 
-              <input
-                type="range"
-                min="1"
-                max="30"
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value))}
-                className="cursor-pointer"
-              />
+              <div className="border border-emerald-300/35 bg-gradient-to-r from-emerald-400/15 to-cyan-400/10 px-2.5 py-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] uppercase tracking-widest text-emerald-100">
+                    Balance
+                  </p>
 
-              <div className="mt-1 flex justify-between text-[8px] text-emerald-100/35">
-                <span>1</span>
-                <span>30</span>
-              </div>
-            </div>
+                  <span className="text-[8px] text-cyan-200">
+                    ৳{pricePerDay}/day
+                  </span>
+                </div>
 
-            <div className="border border-emerald-300/30 bg-gradient-to-r from-emerald-400/15 to-cyan-400/10 px-2.5 py-2">
-              <div className="flex items-center justify-between">
-                <p className="text-[9px] uppercase tracking-widest text-emerald-100">
-                  Balance
-                </p>
+                <div className="mt-2">
+                  <h2 className="text-lg font-bold text-emerald-200">
+                    ৳{totalBalance}
+                  </h2>
 
-                <span className="text-[9px] text-cyan-200">
-                  ৳{pricePerDay}/day
-                </span>
-              </div>
-
-              <div className="mt-1 flex items-end justify-between">
-                <h2 className="text-lg font-bold text-emerald-200">
-                  ৳{totalBalance}
-                </h2>
-
-                <p className="text-[9px] text-emerald-100/70">
-                  {days} × ৳{pricePerDay}
-                </p>
+                  <p className="text-[8px] text-emerald-100/70">
+                    {days} × ৳{pricePerDay}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -357,7 +370,7 @@ const Page = () => {
                     className={`min-h-[28px] border px-1 text-[10px] transition-all duration-200 ${
                       isSelected
                         ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.25)]"
-                        : "border-white/10 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/50 hover:bg-emerald-300/10"
+                        : "border-emerald-300/35 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/80 hover:bg-emerald-300/10"
                     }`}
                   >
                     {item}
@@ -373,7 +386,7 @@ const Page = () => {
             className={`mt-3 h-9 w-full border text-[11px] font-bold uppercase tracking-[0.22em] transition ${
               isFormComplete
                 ? "border-emerald-200 bg-gradient-to-r from-emerald-300 to-cyan-300 text-slate-950 shadow-[0_0_25px_rgba(45,212,191,0.25)] hover:brightness-110 active:scale-[0.99]"
-                : "cursor-not-allowed border-white/10 bg-white/[0.07] text-white/30"
+                : "cursor-not-allowed border-emerald-300/20 bg-white/[0.07] text-white/30"
             }`}
           >
             Generate
@@ -417,7 +430,7 @@ const Page = () => {
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="border border-white/10 bg-white/[0.07] px-2 py-1 text-xs text-white/70 hover:border-red-300/50 hover:text-red-200"
+                    className="border border-emerald-300/35 bg-white/[0.07] px-2 py-1 text-xs text-white/70 hover:border-red-300/50 hover:text-red-200"
                   >
                     ✕
                   </button>
@@ -426,7 +439,7 @@ const Page = () => {
                 <textarea
                   value={previewText}
                   readOnly
-                  className="h-56 w-full resize-none border border-white/10 bg-white/[0.08] p-3 text-[11px] leading-5 text-emerald-50 outline-none"
+                  className="h-56 w-full resize-none border border-emerald-300/35 bg-white/[0.08] p-3 text-[11px] leading-5 text-emerald-50 outline-none"
                 />
 
                 <button
