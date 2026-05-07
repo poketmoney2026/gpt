@@ -11,13 +11,6 @@ const uses = [
   "Email",
   "Business",
   "Research",
-  "Translate",
-  "Resume",
-  "Social",
-  "Slide",
-  "PDF",
-  "Math",
-  "Travel",
 ];
 
 const WHATSAPP_NUMBER = "8801741815153";
@@ -30,14 +23,14 @@ const Page = () => {
   });
 
   const [selectedUses, setSelectedUses] = useState([]);
-  const [packageType, setPackageType] = useState("share");
   const [days, setDays] = useState(7);
+  const [planType, setPlanType] = useState("share");
   const [showToast, setShowToast] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedAt, setGeneratedAt] = useState(new Date());
 
-  const pricePerDay = packageType === "personal" ? 8 : 5;
+  const pricePerDay = planType === "personal" ? 8 : 5;
   const totalBalance = days * pricePerDay;
 
   const isFormComplete =
@@ -68,21 +61,21 @@ const Page = () => {
   }, [generatedAt]);
 
   const previewText = useMemo(() => {
-    return `🤖 ChatGPT User Info
-👤 Name: ${formData.name}
-📞 Number: ${formData.number}
-📧 Email: ${formData.email}
-📦 Package: ${packageType === "personal" ? "Personal" : "Share"}
-⏳ Duration: ${days} day${days > 1 ? "s" : ""}
-💸 Price: ৳${pricePerDay}/day
-🧾 Total Bill: ৳${totalBalance}
-🛠️ Use For: ${selectedUses.join(", ")}
-📅 Date: ${formattedDate}
-⏰ Time: ${formattedTime}
-💳 Payment: No`;
+    return `1. ChatGPT User Info
+2. Name: ${formData.name}
+3. Number: ${formData.number}
+4. Email: ${formData.email}
+5. Package: ${planType === "share" ? "Share" : "Personal"}
+6. Duration: ${days} day${days > 1 ? "s" : ""}
+7. Price: ৳${pricePerDay}/day
+8. Total Bill: ৳${totalBalance}
+9. Use For: ${selectedUses.join(", ")}
+10. Date: ${formattedDate}
+11. Time: ${formattedTime}
+12. Payment: No`;
   }, [
     formData,
-    packageType,
+    planType,
     days,
     pricePerDay,
     totalBalance,
@@ -123,8 +116,7 @@ const Page = () => {
 
     if (!isFormComplete) return;
 
-    const now = new Date();
-    setGeneratedAt(now);
+    setGeneratedAt(new Date());
     setIsModalOpen(true);
     setIsLoading(true);
 
@@ -172,8 +164,8 @@ const Page = () => {
         input[type="range"]::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 15px;
-          height: 15px;
+          width: 14px;
+          height: 14px;
           background: #a7f3d0;
           border: 2px solid #10b981;
           cursor: pointer;
@@ -181,8 +173,8 @@ const Page = () => {
         }
 
         input[type="range"]::-moz-range-thumb {
-          width: 15px;
-          height: 15px;
+          width: 14px;
+          height: 14px;
           background: #a7f3d0;
           border: 2px solid #10b981;
           cursor: pointer;
@@ -224,7 +216,7 @@ const Page = () => {
         />
       </div>
 
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 bg-emerald-400/10 blur-[90px]" />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 bg-emerald-400/10 blur-[90px]" />
 
       {showToast && (
         <div className="fixed left-1/2 top-4 z-[70] -translate-x-1/2 border border-emerald-300/50 bg-emerald-950/90 px-4 py-2 text-[11px] text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.35)]">
@@ -235,16 +227,16 @@ const Page = () => {
       <div className="relative z-10 flex h-full items-center justify-center px-4">
         <form
           onSubmit={handleGenerate}
-          className="w-full max-w-[315px] border border-emerald-300/25 bg-gradient-to-br from-cyan-950/55 via-emerald-950/45 to-slate-900/60 p-4 shadow-[0_0_45px_rgba(16,185,129,0.18)] backdrop-blur-2xl sm:max-w-[335px]"
+          className="w-full max-w-[292px] border border-emerald-300/25 bg-gradient-to-br from-cyan-950/55 via-emerald-950/45 to-slate-900/60 p-3 shadow-[0_0_45px_rgba(16,185,129,0.18)] backdrop-blur-2xl sm:max-w-[305px]"
         >
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             <input
               name="name"
               type="text"
               placeholder="Name"
               value={formData.name}
               onChange={handleInputChange}
-              className="h-9 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
             <input
@@ -253,7 +245,7 @@ const Page = () => {
               placeholder="Number"
               value={formData.number}
               onChange={handleInputChange}
-              className="h-9 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
             <input
@@ -262,40 +254,44 @@ const Page = () => {
               placeholder="Email"
               value={formData.email}
               onChange={handleInputChange}
-              className="h-9 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
+              className="h-8 w-full border border-white/10 bg-white/[0.08] px-3 text-[11px] text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
             />
 
-            {/* Package Type */}
-            <div className="grid grid-cols-2 gap-1.5 border border-white/10 bg-white/[0.07] p-1.5">
-              <button
-                type="button"
-                onClick={() => setPackageType("share")}
-                className={`h-8 border text-[10px] font-semibold uppercase tracking-widest transition ${
-                  packageType === "share"
-                    ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_14px_rgba(52,211,153,0.25)]"
-                    : "border-white/10 bg-white/[0.05] text-emerald-100/60 hover:border-emerald-300/50 hover:bg-emerald-300/10"
-                }`}
-              >
-                Share
-              </button>
+            <div className="border border-white/10 bg-white/[0.07] px-2.5 py-2">
+              <label className="mb-1.5 block text-[9px] uppercase tracking-widest text-emerald-100/80">
+                Package Type
+              </label>
 
-              <button
-                type="button"
-                onClick={() => setPackageType("personal")}
-                className={`h-8 border text-[10px] font-semibold uppercase tracking-widest transition ${
-                  packageType === "personal"
-                    ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_14px_rgba(52,211,153,0.25)]"
-                    : "border-white/10 bg-white/[0.05] text-emerald-100/60 hover:border-emerald-300/50 hover:bg-emerald-300/10"
-                }`}
-              >
-                Personal
-              </button>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPlanType("share")}
+                  className={`h-8 border text-[10px] font-medium uppercase tracking-wider transition-all ${
+                    planType === "share"
+                      ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.25)]"
+                      : "border-white/10 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/50 hover:bg-emerald-300/10"
+                  }`}
+                >
+                  Share
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPlanType("personal")}
+                  className={`h-8 border text-[10px] font-medium uppercase tracking-wider transition-all ${
+                    planType === "personal"
+                      ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.25)]"
+                      : "border-white/10 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/50 hover:bg-emerald-300/10"
+                  }`}
+                >
+                  Personal
+                </button>
+              </div>
             </div>
 
-            {/* Days */}
-            <div className="border border-white/10 bg-white/[0.07] px-3 py-2">
+            <div className="border border-white/10 bg-white/[0.07] px-2.5 py-2">
               <div className="mb-1 flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-widest text-emerald-100/80">
+                <label className="text-[9px] uppercase tracking-widest text-emerald-100/80">
                   Days
                 </label>
 
@@ -319,20 +315,19 @@ const Page = () => {
               </div>
             </div>
 
-            {/* Balance */}
-            <div className="border border-emerald-300/30 bg-gradient-to-r from-emerald-400/15 to-cyan-400/10 px-3 py-3">
+            <div className="border border-emerald-300/30 bg-gradient-to-r from-emerald-400/15 to-cyan-400/10 px-2.5 py-2">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-widest text-emerald-100">
+                <p className="text-[9px] uppercase tracking-widest text-emerald-100">
                   Balance
                 </p>
 
-                <span className="text-[10px] text-cyan-200">
+                <span className="text-[9px] text-cyan-200">
                   ৳{pricePerDay}/day
                 </span>
               </div>
 
               <div className="mt-1 flex items-end justify-between">
-                <h2 className="text-xl font-bold text-emerald-200">
+                <h2 className="text-lg font-bold text-emerald-200">
                   ৳{totalBalance}
                 </h2>
 
@@ -343,15 +338,14 @@ const Page = () => {
             </div>
           </div>
 
-          {/* Use */}
-          <div className="mt-4">
-            <div className="mb-2">
+          <div className="mt-3">
+            <div className="mb-1.5">
               <p className="text-[10px] uppercase tracking-widest text-emerald-100/80">
                 Use
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               {uses.map((item) => {
                 const isSelected = selectedUses.includes(item);
 
@@ -360,10 +354,10 @@ const Page = () => {
                     key={item}
                     type="button"
                     onClick={() => handleUseClick(item)}
-                    className={`min-h-[29px] border px-2 text-[9px] transition-all duration-200 ${
+                    className={`min-h-[28px] border px-1 text-[10px] transition-all duration-200 ${
                       isSelected
                         ? "border-emerald-200 bg-emerald-300/30 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.25)]"
-                        : "border-white/10 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/50 hover:bg-emerald-300/10 hover:text-emerald-100"
+                        : "border-white/10 bg-white/[0.06] text-emerald-100/70 hover:border-emerald-300/50 hover:bg-emerald-300/10"
                     }`}
                   >
                     {item}
@@ -376,7 +370,7 @@ const Page = () => {
           <button
             type="submit"
             disabled={!isFormComplete}
-            className={`mt-4 h-10 w-full border text-[11px] font-bold uppercase tracking-[0.22em] transition ${
+            className={`mt-3 h-9 w-full border text-[11px] font-bold uppercase tracking-[0.22em] transition ${
               isFormComplete
                 ? "border-emerald-200 bg-gradient-to-r from-emerald-300 to-cyan-300 text-slate-950 shadow-[0_0_25px_rgba(45,212,191,0.25)] hover:brightness-110 active:scale-[0.99]"
                 : "cursor-not-allowed border-white/10 bg-white/[0.07] text-white/30"
@@ -387,7 +381,6 @@ const Page = () => {
         </form>
       </div>
 
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-md">
           <div className="w-full max-w-[330px] border border-emerald-300/30 bg-gradient-to-br from-slate-900 via-emerald-950 to-cyan-950 p-4 shadow-[0_0_55px_rgba(52,211,153,0.22)]">
