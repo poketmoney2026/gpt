@@ -1,5 +1,11 @@
 import mongoose from "mongoose";
-import { ORDER_STATUSES, PLAN_PRICES, USE_CASES } from "@/lib/constants";
+import {
+  DEVICE_BRANDS,
+  ORDER_STATUSES,
+  PAYMENT_STATUSES,
+  USE_CASES,
+  VERIFY_STATUSES,
+} from "@/lib/constants";
 
 const OrderSchema = new mongoose.Schema(
   {
@@ -31,9 +37,16 @@ const OrderSchema = new mongoose.Schema(
       maxlength: 120,
       index: true,
     },
+    device: {
+      type: String,
+      enum: DEVICE_BRANDS,
+      required: true,
+      default: "iPhone",
+      index: true,
+    },
     plan: {
       type: String,
-      enum: Object.keys(PLAN_PRICES),
+      enum: ["share", "personal"],
       required: true,
       index: true,
     },
@@ -60,10 +73,22 @@ const OrderSchema = new mongoose.Schema(
       validate: {
         validator(value) {
           const unique = new Set(value || []);
-          return Array.isArray(value) && value.length === 3 && unique.size === 3 && value.every((item) => USE_CASES.includes(item));
+          return Array.isArray(value) && value.length > 0 && value.length === unique.size && value.every((item) => USE_CASES.includes(item));
         },
-        message: "Three valid use cases required",
+        message: "At least one valid use case required",
       },
+    },
+    paymentStatus: {
+      type: String,
+      enum: PAYMENT_STATUSES,
+      default: "unpaid",
+      index: true,
+    },
+    verifyStatus: {
+      type: String,
+      enum: VERIFY_STATUSES,
+      default: "unverified",
+      index: true,
     },
     status: {
       type: String,
@@ -74,16 +99,18 @@ const OrderSchema = new mongoose.Schema(
     startDate: {
       type: Date,
       default: Date.now,
+      index: true,
     },
     endDate: {
       type: Date,
       required: true,
+      index: true,
     },
   },
   { timestamps: true }
 );
 
 OrderSchema.index({ createdAt: -1 });
-OrderSchema.index({ customerName: "text", orderMobile: "text", email: "text" });
+OrderSchema.index({ customerName: "text", orderMobile: "text", email: "text", device: "text" });
 
 export default mongoose.models.Order || mongoose.model("Order", OrderSchema);

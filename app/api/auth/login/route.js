@@ -13,7 +13,7 @@ export async function POST(request) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ ok: false, message: "Login failed" }, { status: 400 });
+      return NextResponse.json({ ok: false, message: "মোবাইল নাম্বার দিন।" }, { status: 400 });
     }
 
     const checked = validateLoginPayload(body);
@@ -42,7 +42,7 @@ export async function POST(request) {
     return response;
   } catch (error) {
     return NextResponse.json(
-      { ok: false, message: error?.message || "Login failed" },
+      { ok: false, message: error?.message || "সার্ভারে সমস্যা হয়েছে।" },
       { status: 500 }
     );
   }
