@@ -3,6 +3,45 @@ import { getAuth, withRemaining, writeDb } from "@/lib/db";
 
 export const runtime = "nodejs";
 
+const dayMs = 24 * 60 * 60 * 1000;
+
+const planLabel = (planType) => {
+  if (planType === "version-one") return "Version One";
+  if (planType === "version-two") return "Version Two";
+  if (planType === "personal") return "Personal";
+  return "Share";
+};
+
+const applyEditPayload = (pkg, payload) => {
+  const startedAt = pkg.startedAt || pkg.purchasedAt || pkg.createdAt || new Date().toISOString();
+  const endsAt = new Date(new Date(startedAt).getTime() + Number(payload.days || 0) * dayMs).toISOString();
+
+  return {
+    ...pkg,
+    ...payload,
+    planName: planLabel(payload.planType),
+    paymentStatus: payload.paymentStatus || payload.payment || "unpaid",
+    payment: payload.paymentStatus || payload.payment || "unpaid",
+    startedAt,
+    endsAt,
+    endAt: endsAt,
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+const syncOwner = (db, pkg, payload) => {
+  const ownerIndex = db.users.findIndex((item) => item.id === pkg.userId);
+  if (ownerIndex < 0) return;
+
+  db.users[ownerIndex] = {
+    ...db.users[ownerIndex],
+    name: payload.name || db.users[ownerIndex].name,
+    email: payload.email || db.users[ownerIndex].email || "",
+    deviceName: payload.deviceName || db.users[ownerIndex].deviceName || "",
+    updatedAt: new Date().toISOString(),
+  };
+};
+
 export async function GET(request) {
   const auth = await getAuth(request);
 
@@ -57,11 +96,9 @@ export async function PATCH(request) {
       const pkgIndex = auth.db.packages.findIndex((item) => item.id === review.packageId);
 
       if (pkgIndex >= 0) {
-        auth.db.packages[pkgIndex] = {
-          ...auth.db.packages[pkgIndex],
-          ...review.payload,
-          updatedAt: new Date().toISOString(),
-        };
+        const updated = applyEditPayload(auth.db.packages[pkgIndex], review.payload);
+        auth.db.packages[pkgIndex] = updated;
+        syncOwner(auth.db, updated, review.payload);
       }
     }
 

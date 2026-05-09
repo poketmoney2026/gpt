@@ -3,15 +3,28 @@ import { adminNumbers, getAuth, mobileRegex, uid, withRemaining, writeDb } from 
 
 export const runtime = "nodejs";
 
-const allowedPlans = ["share", "personal"];
+const allowedPlans = ["share", "personal", "version-one", "version-two"];
+const allowedPayments = ["unpaid", "paid", "pending"];
+const dayMs = 24 * 60 * 60 * 1000;
+
+const priceByPlan = {
+  share: 5,
+  personal: 8,
+  "version-one": 5,
+  "version-two": 8,
+};
 
 const sanitizePackagePayload = (body) => {
   const days = Number(body.days || 0);
   const planType = allowedPlans.includes(body.planType) ? body.planType : "share";
-  const pricePerDay = planType === "personal" ? 8 : 5;
-  const uses = Array.isArray(body.uses)
-    ? body.uses.map(String).filter(Boolean)
-    : [];
+  const pricePerDay = Number(body.pricePerDay || priceByPlan[planType] || 5);
+  const safeDays = Math.min(365, Math.max(1, days || 1));
+  const uses = Array.isArray(body.uses) ? body.uses.map(String).filter(Boolean) : [];
+  const paymentStatus = allowedPayments.includes(body.paymentStatus)
+    ? body.paymentStatus
+    : allowedPayments.includes(body.payment)
+      ? body.payment
+      : "unpaid";
 
   return {
     name: String(body.name || "").trim(),
@@ -19,11 +32,12 @@ const sanitizePackagePayload = (body) => {
     email: String(body.email || "").trim(),
     deviceName: String(body.deviceName || "").trim(),
     planType,
-    days: Math.min(365, Math.max(1, days || 1)),
+    days: safeDays,
     pricePerDay,
-    totalBalance: Math.min(365, Math.max(1, days || 1)) * pricePerDay,
+    totalBalance: safeDays * pricePerDay,
     uses,
-    payment: body.payment || "No",
+    paymentStatus,
+    payment: paymentStatus,
     note: String(body.note || "").trim(),
   };
 };
@@ -42,6 +56,38 @@ const validatePayload = (payload) => {
 
 const canAccessPackage = (user, pkg) => user.role === "admin" || pkg.userId === user.id;
 
+const planLabel = (planType) => {
+  if (planType === "version-one") return "Version One";
+  if (planType === "version-two") return "Version Two";
+  if (planType === "personal") return "Personal";
+  return "Share";
+};
+
+const buildPackageUpdate = (previous, payload) => {
+  const startedAt = previous.startedAt || previous.purchasedAt || previous.createdAt || new Date().toISOString();
+  const endsAt = new Date(new Date(startedAt).getTime() + Number(payload.days || 0) * dayMs).toISOString();
+
+  return {
+    ...previous,
+    ...payload,
+    planName: planLabel(payload.planType),
+    startedAt,
+    endsAt,
+    endAt: endsAt,
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+const updateOwnerFromPackage = (db, owner, payload) => {
+  owner.name = payload.name || owner.name;
+  owner.email = payload.email || owner.email || "";
+  owner.deviceName = payload.deviceName || owner.deviceName || "";
+  owner.updatedAt = new Date().toISOString();
+
+  const ownerIndex = db.users.findIndex((item) => item.id === owner.id);
+  if (ownerIndex >= 0) db.users[ownerIndex] = owner;
+};
+
 export async function GET(request) {
   const auth = await getAuth(request);
 
@@ -56,12 +102,11 @@ export async function GET(request) {
       ...pkg,
       userName: owner?.name || "Unknown",
       userNumber: owner?.number || "",
+      userEmail: owner?.email || "",
     });
   });
 
-  const packages = user.role === "admin"
-    ? enriched
-    : enriched.filter((pkg) => pkg.userId === user.id);
+  const packages = user.role === "admin" ? enriched : enriched.filter((pkg) => pkg.userId === user.id);
 
   return NextResponse.json({ packages });
 }
@@ -74,7 +119,12 @@ export async function POST(request) {
   }
 
   const body = await request.json();
-  const payload = sanitizePackagePayload(body);
+  let payload = sanitizePackagePayload(body);
+
+  if (auth.user.role !== "admin") {
+    payload = { ...payload, number: auth.user.number };
+  }
+
   const validationError = validatePayload(payload);
 
   if (validationError) {
@@ -82,33 +132,40 @@ export async function POST(request) {
   }
 
   const now = new Date().toISOString();
-  let userId = auth.user.id;
+  let owner = auth.user;
 
   if (auth.user.role === "admin") {
-    let owner = auth.db.users.find((item) => item.number === payload.number);
+    owner = auth.db.users.find((item) => item.number === payload.number);
 
     if (!owner) {
       owner = {
         id: uid("user"),
         name: payload.name,
         number: payload.number,
+        email: payload.email,
+        deviceName: payload.deviceName,
         role: adminNumbers().includes(payload.number) ? "admin" : "user",
         createdAt: now,
         updatedAt: now,
       };
       auth.db.users.push(owner);
     } else {
-      owner.name = payload.name || owner.name;
-      owner.updatedAt = now;
+      updateOwnerFromPackage(auth.db, owner, payload);
     }
-
-    userId = owner.id;
+  } else {
+    updateOwnerFromPackage(auth.db, owner, payload);
   }
 
+  const endsAt = new Date(new Date(now).getTime() + Number(payload.days || 0) * dayMs).toISOString();
   const pkg = {
     id: uid("pkg"),
-    userId,
+    userId: owner.id,
     ...payload,
+    planName: planLabel(payload.planType),
+    purchasedAt: now,
+    startedAt: now,
+    endsAt,
+    endAt: endsAt,
     createdAt: now,
     updatedAt: now,
   };
@@ -129,18 +186,23 @@ export async function PATCH(request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   const body = await request.json();
-  const payload = sanitizePackagePayload(body);
-  const validationError = validatePayload(payload);
-
-  if (validationError) {
-    return NextResponse.json({ message: validationError }, { status: 400 });
-  }
+  let payload = sanitizePackagePayload(body);
 
   const pkgIndex = auth.db.packages.findIndex((item) => item.id === id);
   const pkg = auth.db.packages[pkgIndex];
 
   if (!pkg || !canAccessPackage(auth.user, pkg)) {
     return NextResponse.json({ message: "প্যাকেজ পাওয়া যায়নি।" }, { status: 404 });
+  }
+
+  if (auth.user.role !== "admin") {
+    payload = { ...payload, number: auth.user.number, paymentStatus: pkg.paymentStatus || "unpaid", payment: pkg.paymentStatus || "unpaid" };
+  }
+
+  const validationError = validatePayload(payload);
+
+  if (validationError) {
+    return NextResponse.json({ message: validationError }, { status: 400 });
   }
 
   if (auth.user.role !== "admin" && auth.db.settings.editMode === "review") {
@@ -161,13 +223,12 @@ export async function PATCH(request) {
     return NextResponse.json({ reviewRequired: true, review });
   }
 
-  const updated = {
-    ...pkg,
-    ...payload,
-    updatedAt: new Date().toISOString(),
-  };
-
+  const updated = buildPackageUpdate(pkg, payload);
   auth.db.packages[pkgIndex] = updated;
+
+  const owner = auth.db.users.find((item) => item.id === updated.userId);
+  if (owner) updateOwnerFromPackage(auth.db, owner, payload);
+
   await writeDb(auth.db);
 
   return NextResponse.json({ package: withRemaining(updated) });

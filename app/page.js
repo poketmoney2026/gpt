@@ -27,7 +27,24 @@ const emptyForm = {
 const priceByPlan = {
   share: 5,
   personal: 8,
+  "version-one": 5,
+  "version-two": 8,
 };
+
+const planLabel = {
+  share: "Share",
+  personal: "Personal",
+  "version-one": "Version One",
+  "version-two": "Version Two",
+};
+
+const paymentLabel = {
+  unpaid: "Unpaid",
+  paid: "Paid",
+  pending: "Pending",
+};
+
+const dayMs = 24 * 60 * 60 * 1000;
 
 const statusLabel = {
   active: "Active",
@@ -99,9 +116,41 @@ const formatTime = (date) => {
 
 const money = (amount) => `৳${Number(amount || 0).toLocaleString("en-BD")}`;
 
+const withLiveTime = (item, now) => {
+  if (!now) return item;
+
+  const startedAt = new Date(item.startedAt || item.purchasedAt || item.createdAt).getTime();
+  const endsAt = item.endsAt || item.endAt || new Date(startedAt + Number(item.days || 0) * dayMs).toISOString();
+  const endTime = new Date(endsAt).getTime();
+  const remainingMs = Math.max(0, endTime - now);
+  const usedMs = Math.max(0, Math.min(Number(item.days || 0) * dayMs, now - startedAt));
+  const daysLeft = Math.ceil(remainingMs / dayMs);
+
+  return {
+    ...item,
+    endsAt,
+    endAt: endsAt,
+    remainingMs,
+    secondsLeft: Math.ceil(remainingMs / 1000),
+    usedDays: Math.floor(usedMs / dayMs),
+    status: daysLeft <= 0 ? "expired" : daysLeft <= 3 ? "ending-soon" : "active",
+    daysLeft,
+  };
+};
+
+const formatRemaining = (ms) => {
+  const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+  const daysPart = Math.floor(totalSeconds / 86400);
+  const hoursPart = Math.floor((totalSeconds % 86400) / 3600);
+  const minutesPart = Math.floor((totalSeconds % 3600) / 60);
+  const secondsPart = totalSeconds % 60;
+
+  return `${daysPart}d ${String(hoursPart).padStart(2, "0")}h ${String(minutesPart).padStart(2, "0")}m ${String(secondsPart).padStart(2, "0")}s`;
+};
+
 export default function Page() {
   const [authStatus, setAuthStatus] = useState("checking");
-  const [loginNumber, setLoginNumber] = useState("");
+  const [visitNumber, setVisitNumber] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [packages, setPackages] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -110,6 +159,8 @@ export default function Page() {
   const [selectedUses, setSelectedUses] = useState([]);
   const [days, setDays] = useState(7);
   const [planType, setPlanType] = useState("share");
+  const [paymentStatus, setPaymentStatus] = useState("unpaid");
+  const [clock, setClock] = useState(0);
   const [editingPackage, setEditingPackage] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -117,10 +168,11 @@ export default function Page() {
   const [filters, setFilters] = useState({ search: "", status: "all", plan: "all", maxLeft: "" });
   const [activeAdminTab, setActiveAdminTab] = useState("packages");
 
-  const pricePerDay = priceByPlan[planType];
+  const pricePerDay = priceByPlan[planType] || 5;
   const totalBalance = days * pricePerDay;
   const rangePercent = ((days - 1) / 364) * 100;
   const isAdmin = currentUser?.role === "admin";
+  const livePackages = useMemo(() => packages.map((item) => withLiveTime(item, clock)), [packages, clock]);
   const pendingReviews = reviews.filter((review) => review.status === "pending");
 
   const isFormComplete =
@@ -134,7 +186,7 @@ export default function Page() {
     const search = filters.search.trim().toLowerCase();
     const maxLeft = filters.maxLeft === "" ? null : Number(filters.maxLeft);
 
-    return packages.filter((item) => {
+    return livePackages.filter((item) => {
       const haystack = [
         item.name,
         item.number,
@@ -154,22 +206,22 @@ export default function Page() {
 
       return matchesSearch && matchesStatus && matchesPlan && matchesDays;
     });
-  }, [filters, packages]);
+  }, [filters, livePackages]);
 
   const stats = useMemo(() => {
-    const totalRevenue = packages.reduce((sum, item) => sum + Number(item.totalBalance || 0), 0);
-    const uniqueUsers = new Set(packages.map((item) => item.userId)).size;
+    const totalRevenue = livePackages.reduce((sum, item) => sum + Number(item.totalBalance || 0), 0);
+    const uniqueUsers = new Set(livePackages.map((item) => item.userId)).size;
 
     return {
       users: uniqueUsers,
-      packages: packages.length,
-      active: packages.filter((item) => item.status === "active").length,
-      expiring: packages.filter((item) => item.status === "ending-soon").length,
-      expired: packages.filter((item) => item.status === "expired").length,
+      packages: livePackages.length,
+      active: livePackages.filter((item) => item.status === "active").length,
+      expiring: livePackages.filter((item) => item.status === "ending-soon").length,
+      expired: livePackages.filter((item) => item.status === "expired").length,
       revenue: totalRevenue,
       pending: pendingReviews.length,
     };
-  }, [packages, pendingReviews.length]);
+  }, [livePackages, pendingReviews.length]);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -181,7 +233,7 @@ export default function Page() {
     setCurrentUser(null);
     setPackages([]);
     setReviews([]);
-    setAuthStatus("login");
+    setAuthStatus("visit");
     setIsFormOpen(false);
   };
 
@@ -207,10 +259,20 @@ export default function Page() {
   };
 
   useEffect(() => {
+    const tick = () => setClock(Date.now());
+    const starter = window.setTimeout(tick, 0);
+    const timer = window.setInterval(tick, 1000);
+    return () => {
+      window.clearTimeout(starter);
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
     const session = getStoredSession();
 
     if (!session) {
-      Promise.resolve().then(() => setAuthStatus("login"));
+      Promise.resolve().then(() => setAuthStatus("visit"));
       return;
     }
 
@@ -218,9 +280,9 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleLogin = async (event) => {
+  const handleVisit = async (event) => {
     event.preventDefault();
-    const number = loginNumber.trim();
+    const number = visitNumber.trim();
 
     if (!mobileRegex.test(number)) {
       showToast("নাম্বার ১১ ডিজিট হতে হবে এবং 01 দিয়ে শুরু হবে।");
@@ -240,7 +302,7 @@ export default function Page() {
       );
 
       setCurrentUser(data.user);
-      showToast("লগইন সফল হয়েছে");
+      showToast("Visit access পাওয়া গেছে");
       await loadAppData();
     } catch (error) {
       showToast(error.message);
@@ -249,10 +311,17 @@ export default function Page() {
 
   const openCreateForm = () => {
     setEditingPackage(null);
-    setFormData({ ...emptyForm, number: currentUser?.number || "" });
+    setFormData({
+      ...emptyForm,
+      name: currentUser?.name && currentUser.name !== "Admin" ? currentUser.name : "",
+      number: currentUser?.number || "",
+      email: currentUser?.email || "",
+      deviceName: currentUser?.deviceName || "",
+    });
     setSelectedUses([]);
     setDays(7);
     setPlanType("share");
+    setPaymentStatus("unpaid");
     setIsFormOpen(true);
   };
 
@@ -268,6 +337,7 @@ export default function Page() {
     setSelectedUses(item.uses || []);
     setDays(Number(item.days || 7));
     setPlanType(item.planType || "share");
+    setPaymentStatus(item.paymentStatus || item.payment || "unpaid");
     setIsFormOpen(true);
   };
 
@@ -300,7 +370,8 @@ export default function Page() {
       uses: selectedUses,
       days,
       planType,
-      payment: "No",
+      paymentStatus,
+      payment: paymentStatus,
     };
 
     try {
@@ -439,12 +510,12 @@ export default function Page() {
 
       <div className="relative z-10 min-h-screen px-4 py-5 sm:px-6 lg:px-8">
         {authStatus === "checking" && <LoadingPanel />}
-        {authStatus === "login" && (
-          <LoginPanel loginNumber={loginNumber} onNumberChange={setLoginNumber} onSubmit={handleLogin} />
+        {authStatus === "visit" && (
+          <VisitPanel visitNumber={visitNumber} onNumberChange={setVisitNumber} onSubmit={handleVisit} />
         )}
         {authStatus === "authenticated" && currentUser && (
           <>
-            <Header currentUser={currentUser} isAdmin={isAdmin} onLogout={logout} />
+            <Header currentUser={currentUser} isAdmin={isAdmin} onExit={logout} />
 
             {isAdmin ? (
               <AdminDashboard
@@ -453,7 +524,7 @@ export default function Page() {
                 filters={filters}
                 setFilters={setFilters}
                 packages={visiblePackages}
-                allPackages={packages}
+                allPackages={livePackages}
                 stats={stats}
                 settings={settings}
                 saveSettings={saveSettings}
@@ -468,7 +539,7 @@ export default function Page() {
             ) : (
               <UserDashboard
                 currentUser={currentUser}
-                packages={packages}
+                packages={livePackages}
                 reviews={reviews}
                 onEdit={openEditForm}
                 onDelete={deletePackage}
@@ -485,6 +556,7 @@ export default function Page() {
           selectedUses={selectedUses}
           days={days}
           planType={planType}
+          paymentStatus={paymentStatus}
           pricePerDay={pricePerDay}
           totalBalance={totalBalance}
           editingPackage={editingPackage}
@@ -494,6 +566,7 @@ export default function Page() {
           onUseClick={handleUseClick}
           onDaysChange={setDays}
           onPlanTypeChange={setPlanType}
+          onPaymentStatusChange={setPaymentStatus}
           onClose={closeForm}
           onSubmit={submitPackage}
         />
@@ -513,8 +586,8 @@ function LoadingPanel() {
   );
 }
 
-function LoginPanel({ loginNumber, onNumberChange, onSubmit }) {
-  const isValid = mobileRegex.test(loginNumber.trim());
+function VisitPanel({ visitNumber, onNumberChange, onSubmit }) {
+  const isValid = mobileRegex.test(visitNumber.trim());
 
   return (
     <div className="flex min-h-[88vh] items-center justify-center">
@@ -522,15 +595,15 @@ function LoginPanel({ loginNumber, onNumberChange, onSubmit }) {
         onSubmit={onSubmit}
         className="w-full max-w-[340px] border border-emerald-300/40 bg-gradient-to-br from-cyan-950/55 via-emerald-950/45 to-slate-900/60 p-5 shadow-[0_0_45px_rgba(16,185,129,0.18)] backdrop-blur-2xl"
       >
-        <p className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/70">Token not found</p>
-        <h1 className="mt-2 text-2xl font-bold text-emerald-100">Login Panel</h1>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/70">Visit Access</p>
+        <h1 className="mt-2 text-2xl font-bold text-emerald-100">Visit Panel</h1>
         <p className="mt-2 text-[12px] leading-5 text-emerald-50/60">
-          শুধু ১১ সংখ্যার মোবাইল নাম্বার দিন। নাম্বার অবশ্যই <span className="text-emerald-200">01</span> দিয়ে শুরু হবে।
+          আগে থেকে account থাকলে এই নাম্বার দিয়ে data দেখা যাবে। নাম্বার অবশ্যই <span className="text-emerald-200">01</span> দিয়ে শুরু হওয়া ১১ ডিজিট।
         </p>
 
         <input
           type="tel"
-          value={loginNumber}
+          value={visitNumber}
           onChange={(event) => onNumberChange(event.target.value.replace(/\D/g, "").slice(0, 11))}
           placeholder="01XXXXXXXXX"
           className="mt-5 h-11 w-full border border-emerald-300/45 bg-white/[0.08] px-3 text-sm text-white outline-none placeholder:text-emerald-100/35 transition focus:border-emerald-300 focus:bg-emerald-400/10"
@@ -548,13 +621,13 @@ function LoginPanel({ loginNumber, onNumberChange, onSubmit }) {
           Visit
         </button>
 
-        <p className="mt-3 text-[10px] text-cyan-100/45">একবার লগইন করলে token ১ বছর থাকবে।</p>
+        <p className="mt-3 text-[10px] text-cyan-100/45">একবার Visit করলে JWT token ১ বছর থাকবে।</p>
       </form>
     </div>
   );
 }
 
-function Header({ currentUser, isAdmin, onLogout }) {
+function Header({ currentUser, isAdmin, onExit }) {
   return (
     <header className="mx-auto flex max-w-7xl flex-col gap-3 border border-emerald-300/30 bg-white/[0.06] p-4 shadow-[0_0_35px_rgba(16,185,129,0.12)] backdrop-blur-2xl sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -569,10 +642,10 @@ function Header({ currentUser, isAdmin, onLogout }) {
 
       <button
         type="button"
-        onClick={onLogout}
+        onClick={onExit}
         className="h-10 border border-red-300/35 bg-red-400/10 px-4 text-[11px] font-bold uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-400/20"
       >
-        Logout
+        Exit
       </button>
     </header>
   );
@@ -588,6 +661,8 @@ function UserDashboard({ currentUser, packages, reviews, onEdit, onDelete, onCre
           <div className="grid gap-3 sm:grid-cols-2">
             <MiniInfo label="Name" value={currentUser.name} />
             <MiniInfo label="Mobile" value={currentUser.number} />
+            <MiniInfo label="Email" value={currentUser.email || latest?.email} />
+            <MiniInfo label="Device" value={currentUser.deviceName || latest?.deviceName} />
             <MiniInfo label="Role" value={currentUser.role} />
             <MiniInfo label="Total Package" value={packages.length} />
           </div>
@@ -596,8 +671,8 @@ function UserDashboard({ currentUser, packages, reviews, onEdit, onDelete, onCre
         <InfoCard title="Current Package">
           {latest ? (
             <div className="grid gap-3 sm:grid-cols-3">
-              <MiniInfo label="Package" value={latest.planType === "personal" ? "Personal" : "Share"} />
-              <MiniInfo label="Days Left" value={`${latest.daysLeft} day`} />
+              <MiniInfo label="Package" value={planLabel[latest.planType] || latest.planName || "Package"} />
+              <MiniInfo label="Live Left" value={formatRemaining(latest.remainingMs)} />
               <MiniInfo label="End Date" value={formatDate(latest.endAt)} />
             </div>
           ) : (
@@ -743,6 +818,8 @@ function AdminFilters({ filters, setFilters }) {
         <option value="all">All Package</option>
         <option value="share">Share</option>
         <option value="personal">Personal</option>
+        <option value="version-one">Version One</option>
+        <option value="version-two">Version Two</option>
       </select>
       <input
         value={filters.maxLeft}
@@ -760,77 +837,67 @@ function PackageTable({ packages, onEdit, onDelete, showOwner = false }) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-[980px] w-full border-collapse text-left text-[12px]">
-        <thead>
-          <tr className="border-b border-emerald-300/25 text-[10px] uppercase tracking-[0.18em] text-emerald-100/65">
-            {showOwner && <th className="px-3 py-3">Owner</th>}
-            <th className="px-3 py-3">Customer</th>
-            <th className="px-3 py-3">Package</th>
-            <th className="px-3 py-3">Use</th>
-            <th className="px-3 py-3">Bought</th>
-            <th className="px-3 py-3">Duration</th>
-            <th className="px-3 py-3">Left</th>
-            <th className="px-3 py-3">Bill</th>
-            <th className="px-3 py-3">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {packages.map((item) => (
-            <tr key={item.id} className="border-b border-emerald-300/10 text-emerald-50/80 transition hover:bg-emerald-300/[0.04]">
-              {showOwner && (
-                <td className="px-3 py-3 align-top">
-                  <p className="font-semibold text-emerald-100">{item.userName}</p>
-                  <p className="mt-1 text-[10px] text-cyan-100/50">{item.userNumber}</p>
-                </td>
-              )}
-              <td className="px-3 py-3 align-top">
-                <p className="font-semibold text-emerald-100">{item.name}</p>
-                <p className="mt-1 text-[10px] text-cyan-100/55">{item.number}</p>
-                <p className="mt-1 text-[10px] text-cyan-100/45">{item.email}</p>
-                <p className="mt-1 text-[10px] text-cyan-100/45">Device: {item.deviceName}</p>
-              </td>
-              <td className="px-3 py-3 align-top">
-                <Badge>{item.planType === "personal" ? "Personal" : "Share"}</Badge>
-                <p className="mt-2 text-[10px] text-cyan-100/50">{money(item.pricePerDay)}/day</p>
-              </td>
-              <td className="px-3 py-3 align-top">
-                <div className="flex max-w-[180px] flex-wrap gap-1">
-                  {(item.uses || []).map((use) => <Badge key={use}>{use}</Badge>)}
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {packages.map((item) => {
+        const remainingPercent = Math.max(
+          0,
+          Math.min(100, (Number(item.remainingMs || 0) / (Number(item.days || 1) * dayMs)) * 100)
+        );
+        const paymentTone = item.paymentStatus === "paid" ? "green" : item.paymentStatus === "pending" ? "yellow" : "red";
+
+        return (
+          <article
+            key={item.id}
+            className="border border-emerald-300/25 bg-gradient-to-br from-white/[0.07] to-emerald-300/[0.04] p-3 shadow-[0_0_25px_rgba(16,185,129,0.08)]"
+          >
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge>{planLabel[item.planType] || item.planName || item.planType}</Badge>
+                  <Badge tone={paymentTone}>{paymentLabel[item.paymentStatus] || item.paymentStatus || "Unpaid"}</Badge>
+                  <Badge tone={item.status === "expired" ? "red" : item.status === "ending-soon" ? "yellow" : "green"}>
+                    {statusLabel[item.status]}
+                  </Badge>
                 </div>
-              </td>
-              <td className="px-3 py-3 align-top">
-                <p>{formatDate(item.createdAt)}</p>
-                <p className="mt-1 text-[10px] text-cyan-100/50">{formatTime(item.createdAt)}</p>
-              </td>
-              <td className="px-3 py-3 align-top">
-                <p>{item.usedDays}/{item.days} day</p>
-                <p className="mt-1 text-[10px] text-cyan-100/50">End: {formatDate(item.endAt)}</p>
-              </td>
-              <td className="px-3 py-3 align-top">
-                <Badge tone={item.status === "expired" ? "red" : item.status === "ending-soon" ? "yellow" : "green"}>
-                  {item.daysLeft} day
-                </Badge>
-                <p className="mt-2 text-[10px] text-cyan-100/50">{statusLabel[item.status]}</p>
-              </td>
-              <td className="px-3 py-3 align-top">
-                <p className="font-bold text-emerald-200">{money(item.totalBalance)}</p>
-                <p className="mt-1 text-[10px] text-cyan-100/50">Payment: {item.payment}</p>
-              </td>
-              <td className="px-3 py-3 align-top">
-                <div className="flex gap-1">
-                  <button type="button" onClick={() => onEdit(item)} className="border border-cyan-300/35 bg-cyan-300/10 px-2 py-1 text-[10px] text-cyan-100 hover:bg-cyan-300/20">
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => onDelete(item)} className="border border-red-300/35 bg-red-400/10 px-2 py-1 text-[10px] text-red-100 hover:bg-red-400/20">
-                    Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <h3 className="mt-2 break-words text-base font-bold text-emerald-100">{item.name}</h3>
+                <p className="mt-1 text-[11px] text-cyan-100/65">{item.number} · {item.email}</p>
+                <p className="mt-1 text-[11px] text-cyan-100/50">Device: {item.deviceName || "-"}</p>
+                {showOwner && (
+                  <p className="mt-1 text-[11px] text-emerald-100/70">Owner: {item.userName} · {item.userNumber}</p>
+                )}
+              </div>
+              <div className="flex gap-1">
+                <button type="button" onClick={() => onEdit(item)} className="border border-cyan-300/35 bg-cyan-300/10 px-2.5 py-1.5 text-[10px] font-bold text-cyan-100 hover:bg-cyan-300/20">
+                  Edit
+                </button>
+                <button type="button" onClick={() => onDelete(item)} className="border border-red-300/35 bg-red-400/10 px-2.5 py-1.5 text-[10px] font-bold text-red-100 hover:bg-red-400/20">
+                  Delete
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <MiniInfo label="Bought" value={`${formatDate(item.purchasedAt || item.createdAt)} · ${formatTime(item.purchasedAt || item.createdAt)}`} />
+              <MiniInfo label="Package Days" value={`${item.days} day`} />
+              <MiniInfo label="Used" value={`${item.usedDays || 0}/${item.days} day`} />
+              <MiniInfo label="Live Time Left" value={formatRemaining(item.remainingMs)} />
+              <MiniInfo label="End Date" value={`${formatDate(item.endAt)} · ${formatTime(item.endAt)}`} />
+              <MiniInfo label="Bill" value={`${money(item.totalBalance)} (${money(item.pricePerDay)}/day)`} />
+            </div>
+
+            <div className="mt-3 h-2 overflow-hidden border border-emerald-300/20 bg-slate-950/45">
+              <div className="h-full bg-gradient-to-r from-emerald-300 to-cyan-300" style={{ width: `${remainingPercent}%` }} />
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {(item.uses || []).map((use) => <Badge key={use}>{use}</Badge>)}
+              {item.note && <Badge tone="yellow">Note</Badge>}
+            </div>
+
+            {item.note && <p className="mt-2 text-[11px] leading-5 text-emerald-50/60">{item.note}</p>}
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -840,6 +907,7 @@ function PackageFormModal({
   selectedUses,
   days,
   planType,
+  paymentStatus,
   pricePerDay,
   totalBalance,
   editingPackage,
@@ -849,6 +917,7 @@ function PackageFormModal({
   onUseClick,
   onDaysChange,
   onPlanTypeChange,
+  onPaymentStatusChange,
   onClose,
   onSubmit,
 }) {
@@ -880,7 +949,7 @@ function PackageFormModal({
         <div className="mt-2 border border-emerald-300/45 bg-white/[0.07] px-2.5 py-2">
           <label className="mb-1.5 block text-[9px] uppercase tracking-widest text-emerald-100/80">Package Type</label>
           <div className="grid grid-cols-2 gap-1.5">
-            {["share", "personal"].map((plan) => (
+            {["share", "personal", "version-one", "version-two"].map((plan) => (
               <button
                 key={plan}
                 type="button"
@@ -891,7 +960,7 @@ function PackageFormModal({
                     : "border-emerald-300/45 bg-white/[0.06] text-emerald-100/80 hover:border-emerald-300 hover:bg-emerald-300/10"
                 }`}
               >
-                {plan === "share" ? "Share" : "Personal"}
+                {planLabel[plan]}
               </button>
             ))}
           </div>
@@ -912,6 +981,22 @@ function PackageFormModal({
             <p className="mt-1 text-[11px] font-semibold text-cyan-200">{money(pricePerDay)}/day</p>
             <p className="text-[9px] text-emerald-100/70">{days} × {money(pricePerDay)}</p>
           </div>
+        </div>
+
+
+
+        <div className="mt-2 border border-emerald-300/45 bg-white/[0.07] px-2.5 py-2">
+          <label className="mb-1.5 block text-[9px] uppercase tracking-widest text-emerald-100/80">Payment Status</label>
+          <select
+            value={paymentStatus}
+            onChange={(event) => onPaymentStatusChange(event.target.value)}
+            className="h-9 w-full border border-emerald-300/35 bg-slate-950/80 px-3 text-[11px] text-white outline-none focus:border-emerald-300"
+          >
+            <option value="unpaid">Unpaid</option>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+          </select>
+          <p className="mt-1 text-[10px] text-emerald-100/50">By default every new package is Unpaid.</p>
         </div>
 
         <div className="mt-3">

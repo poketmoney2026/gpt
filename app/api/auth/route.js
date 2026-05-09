@@ -24,22 +24,30 @@ export async function POST(request) {
     }
 
     const db = await readDb();
-    let user = db.users.find((item) => item.number === number);
     const now = new Date().toISOString();
+    const isAdminNumber = adminNumbers().includes(number);
+    let user = db.users.find((item) => item.number === number);
 
-    if (!user) {
-      const role = adminNumbers().includes(number) ? "admin" : "user";
+    if (!user && !isAdminNumber) {
+      return NextResponse.json(
+        { message: "এই নাম্বারে কোনো account পাওয়া যায়নি। আগে admin থেকে account/package create করতে হবে।" },
+        { status: 404 }
+      );
+    }
+
+    if (!user && isAdminNumber) {
       user = {
         id: uid("user"),
-        name: role === "admin" ? "Admin" : `User ${number.slice(-4)}`,
+        name: "Admin",
         number,
-        role,
+        email: "",
+        role: "admin",
         createdAt: now,
         updatedAt: now,
       };
       db.users.push(user);
       await writeDb(db);
-    } else if (adminNumbers().includes(number) && user.role !== "admin") {
+    } else if (isAdminNumber && user.role !== "admin") {
       user.role = "admin";
       user.updatedAt = now;
       await writeDb(db);
@@ -54,7 +62,7 @@ export async function POST(request) {
     });
   } catch (error) {
     return NextResponse.json(
-      { message: "লগইন করা যায়নি। আবার চেষ্টা করুন।", error: error.message },
+      { message: error.message || "Visit করা যায়নি। আবার চেষ্টা করুন।" },
       { status: 500 }
     );
   }

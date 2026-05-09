@@ -1,26 +1,41 @@
-# GPT Customer Data Center
+# GPT Customer Data Center — Version 2 MongoDB
 
-## Login
-- User login: যেকোনো ১১ ডিজিটের BD mobile number, যা `01` দিয়ে শুরু হয়।
-- Default admin number: `01741815153`
-- Admin number change করতে `.env.local` এ লিখুন:
+## Visit Flow
+- প্রথম পেজের নাম এখন **Visit Panel**।
+- User শুধু mobile number দেবে এবং **Visit** চাপবে।
+- Number আগে থেকে account হিসেবে MongoDB-তে থাকলে dashboard খুলবে।
+- Number না থাকলে access হবে না। Admin package/customer create করলে তখন user account তৈরি হবে।
+- JWT web token ১ বছর valid থাকবে।
+
+## MongoDB Setup
+`.env.local` ফাইল তৈরি করে দিন:
 
 ```env
-ADMIN_NUMBERS=01741815153,01900000000
+MONGODB_URI=mongodb+srv://USER:PASSWORD@cluster.mongodb.net/?retryWrites=true&w=majority
+MONGODB_DB=gpt_customer_data_center
+JWT_SECRET=replace-with-a-long-random-secret
+ADMIN_NUMBERS=01741815153
 ```
 
 ## Features
-- ১ বছরের token/session login।
-- User panel: package list, + button, create form, edit, delete, review status।
-- Admin panel: all customer data, search/filter, used days, remaining days, expiry status, revenue stats।
-- Settings: user edit/delete direct save হবে নাকি admin review panel এ যাবে।
-- Review panel: edit request save/approve করা যায়, delete request remove/approve করা যায়।
-
-## Data storage
-এই version এ data `data/db.json` ফাইলে save হয়। Production এ deploy করলে MongoDB, MySQL, PostgreSQL অথবা Supabase ব্যবহার করা ভালো।
+- User Panel + Admin Panel একই dark/neon theme-এ।
+- Admin number দিয়ে Visit করলে Admin Dashboard খুলবে।
+- User account না থাকলে Visit বন্ধ থাকবে।
+- Admin package/customer create করলে name, mobile, email, device, package type, days, price, payment status, note সব MongoDB-তে save হয়।
+- Payment status default: **Unpaid**। Admin চাইলে Paid/Pending করতে পারবে।
+- Countdown live: ৩০ দিন দিলে create/purchase time থেকে প্রতি second কমতে থাকবে।
+- Admin panel data এখন table horizontal scroll নয়; mobile-friendly responsive card layout।
+- Filters: search, status, package type, max days left।
+- Review settings: user edit/delete direct save হবে নাকি review panel-এ যাবে।
+- Review panel: Save করলে apply, Remove করলে reject/delete request remove।
 
 ## Run
 ```bash
 npm install
 npm run dev
+```
+
+## Build
+```bash
+npm run build
 ```
