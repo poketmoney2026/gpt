@@ -7,21 +7,21 @@ const mobileRegex = /^01\d{9}$/;
 
 export async function POST(request) {
   try {
-    const { mobile } = await request.json();
-    const cleanMobile = String(mobile || "").trim();
+    const body = await request.json();
+    const mobile = String(body.mobile || "").trim();
 
-    if (!mobileRegex.test(cleanMobile)) {
-      return NextResponse.json({ ok: false, message: "Mobile number ঠিক করুন" }, { status: 400 });
+    if (!mobileRegex.test(mobile)) {
+      return NextResponse.json({ ok: false, message: "Login failed" }, { status: 400 });
     }
 
     await connectDB();
 
-    const adminMobile = process.env.ADMIN_MOBILE?.trim();
-    const role = adminMobile && cleanMobile === adminMobile ? "admin" : "user";
+    const adminMobile = String(process.env.ADMIN_MOBILE || "").trim();
+    const role = adminMobile && mobile === adminMobile ? "admin" : "user";
 
     const user = await User.findOneAndUpdate(
-      { mobile: cleanMobile },
-      { $set: { lastLoginAt: new Date(), ...(role === "admin" ? { role: "admin" } : {}) } },
+      { mobile },
+      { $set: { mobile, role, lastLoginAt: new Date() } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean();
 

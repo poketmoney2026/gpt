@@ -21,6 +21,6 @@ export async function GET() {
       user: { id: String(user._id), mobile: user.mobile, role: user.role, createdAt: user.createdAt },
     });
   } catch (error) {
-    return NextResponse.json({ ok: false, message: error.message || "Auth check failed" }, { status: 500 });
+    return NextResponse.json({ ok: false, message: error.message || "Auth failed" }, { status: 500 });
   }
 }

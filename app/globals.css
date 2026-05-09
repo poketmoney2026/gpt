@@ -1,30 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #06111f;
-  --foreground: #ffffff;
+  --bg: #06111f;
+  --panel: rgba(255, 255, 255, 0.07);
+  --line: rgba(110, 231, 183, 0.42);
+  --text: #ecfeff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
+* { box-sizing: border-box; }
+html, body { min-height: 100%; margin: 0; }
 body {
-  min-height: 100%;
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
+  background: radial-gradient(circle at top, rgba(16, 185, 129, 0.18), transparent 30%), var(--bg);
+  color: var(--text);
 }
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
+button, input, select { font: inherit; }

@@ -19,26 +19,27 @@ const allowedUseCases = [
   "Brainstorming",
 ];
 
-function orderJson(order) {
-  const plain = typeof order.toObject === "function" ? order.toObject({ virtuals: true }) : order;
-  const start = new Date(plain.startDate).getTime();
-  const runningDays = Math.max(0, Math.min(plain.days, Math.floor((Date.now() - start) / 86400000)));
+function serialize(order) {
+  const data = typeof order.toObject === "function" ? order.toObject() : order;
+  const start = new Date(data.startDate).getTime();
+  const runningDays = Math.max(0, Math.min(data.days, Math.floor((Date.now() - start) / 86400000)));
+
   return {
-    id: String(plain._id),
-    customerName: plain.customerName,
-    orderMobile: plain.orderMobile,
-    email: plain.email,
-    plan: plain.plan,
-    days: plain.days,
-    pricePerDay: plain.pricePerDay,
-    amount: plain.amount,
-    useCases: plain.useCases,
-    status: plain.status,
+    id: String(data._id),
+    customerName: data.customerName,
+    orderMobile: data.orderMobile,
+    email: data.email,
+    plan: data.plan,
+    days: data.days,
+    pricePerDay: data.pricePerDay,
+    amount: data.amount,
+    useCases: data.useCases,
+    status: data.status,
     runningDays,
-    remainingDays: Math.max(0, plain.days - runningDays),
-    startDate: plain.startDate,
-    endDate: plain.endDate,
-    createdAt: plain.createdAt,
+    remainingDays: Math.max(0, data.days - runningDays),
+    startDate: data.startDate,
+    endDate: data.endDate,
+    createdAt: data.createdAt,
   };
 }
 
@@ -48,8 +49,8 @@ export async function GET() {
     if (!payload?.userId) return NextResponse.json({ ok: false }, { status: 401 });
 
     await connectDB();
-    const orders = await Order.find({ owner: payload.userId }).sort({ createdAt: -1 });
-    return NextResponse.json({ ok: true, orders: orders.map(orderJson) });
+    const orders = await Order.find({ owner: payload.userId }).sort({ createdAt: -1 }).limit(200).lean();
+    return NextResponse.json({ ok: true, orders: orders.map(serialize) });
   } catch (error) {
     return NextResponse.json({ ok: false, message: error.message || "Orders load failed" }, { status: 500 });
   }
@@ -69,15 +70,15 @@ export async function POST(request) {
     const useCases = Array.isArray(body.useCases) ? body.useCases : [];
 
     if (!customerName || !mobileRegex.test(orderMobile) || !email.includes("@")) {
-      return NextResponse.json({ ok: false, message: "Form data ঠিক করুন" }, { status: 400 });
+      return NextResponse.json({ ok: false, message: "Form save failed" }, { status: 400 });
     }
 
     if (!Number.isInteger(days) || days < 1 || days > 30) {
-      return NextResponse.json({ ok: false, message: "Duration ঠিক করুন" }, { status: 400 });
+      return NextResponse.json({ ok: false, message: "Duration save failed" }, { status: 400 });
     }
 
     if (useCases.length !== 3 || useCases.some((item) => !allowedUseCases.includes(item))) {
-      return NextResponse.json({ ok: false, message: "Use case ঠিক করুন" }, { status: 400 });
+      return NextResponse.json({ ok: false, message: "Use case save failed" }, { status: 400 });
     }
 
     const pricePerDay = plan === "personal" ? 9 : 6;
@@ -100,7 +101,7 @@ export async function POST(request) {
       endDate,
     });
 
-    return NextResponse.json({ ok: true, order: orderJson(order) });
+    return NextResponse.json({ ok: true, order: serialize(order) });
   } catch (error) {
     return NextResponse.json({ ok: false, message: error.message || "Order save failed" }, { status: 500 });
   }

@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-
 const OrderSchema = new mongoose.Schema(
   {
     owner: {
@@ -9,17 +8,17 @@ const OrderSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    orderMobile: {
-      type: String,
-      required: true,
-      trim: true,
-      match: /^01\d{9}$/,
-    },
     customerName: {
       type: String,
       required: true,
       trim: true,
       maxlength: 80,
+    },
+    orderMobile: {
+      type: String,
+      required: true,
+      trim: true,
+      match: /^01\d{9}$/,
     },
     email: {
       type: String,
@@ -51,7 +50,7 @@ const OrderSchema = new mongoose.Schema(
       type: [String],
       validate: {
         validator: (value) => Array.isArray(value) && value.length === 3,
-        message: "Select exactly three use cases.",
+        message: "Three use cases required",
       },
     },
     status: {
@@ -71,18 +70,5 @@ const OrderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-OrderSchema.virtual("runningDays").get(function () {
-  const start = new Date(this.startDate).getTime();
-  const now = Date.now();
-  return Math.max(0, Math.min(this.days, Math.floor((now - start) / 86400000)));
-});
-
-OrderSchema.virtual("remainingDays").get(function () {
-  return Math.max(0, this.days - this.runningDays);
-});
-
-OrderSchema.set("toJSON", { virtuals: true });
-OrderSchema.set("toObject", { virtuals: true });
 
 export default mongoose.models.Order || mongoose.model("Order", OrderSchema);

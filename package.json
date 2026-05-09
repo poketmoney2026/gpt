@@ -1,6 +1,6 @@
 {
   "name": "gpt-order-panel",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,11 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-<<<<<<< HEAD
     "mongoose": "^8.9.5",
-=======
-    "mongodb": "^6.12.0",
->>>>>>> b6e38429ddeedfe6a2c8253fcb49072a466b2efe
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"

@@ -5,26 +5,26 @@ import Order from "@/models/Order";
 import User from "@/models/User";
 
 function serialize(order) {
-  const plain = order.toObject({ virtuals: true });
-  const start = new Date(plain.startDate).getTime();
-  const runningDays = Math.max(0, Math.min(plain.days, Math.floor((Date.now() - start) / 86400000)));
+  const start = new Date(order.startDate).getTime();
+  const runningDays = Math.max(0, Math.min(order.days, Math.floor((Date.now() - start) / 86400000)));
+
   return {
-    id: String(plain._id),
-    customerName: plain.customerName,
-    orderMobile: plain.orderMobile,
-    email: plain.email,
-    plan: plain.plan,
-    days: plain.days,
-    pricePerDay: plain.pricePerDay,
-    amount: plain.amount,
-    useCases: plain.useCases,
-    status: plain.status,
+    id: String(order._id),
+    customerName: order.customerName,
+    orderMobile: order.orderMobile,
+    email: order.email,
+    plan: order.plan,
+    days: order.days,
+    pricePerDay: order.pricePerDay,
+    amount: order.amount,
+    useCases: order.useCases,
+    status: order.status,
     runningDays,
-    remainingDays: Math.max(0, plain.days - runningDays),
-    startDate: plain.startDate,
-    endDate: plain.endDate,
-    createdAt: plain.createdAt,
-    ownerMobile: plain.owner?.mobile || "",
+    remainingDays: Math.max(0, order.days - runningDays),
+    startDate: order.startDate,
+    endDate: order.endDate,
+    createdAt: order.createdAt,
+    ownerMobile: order.owner?.mobile || "",
   };
 }
 
@@ -59,6 +59,7 @@ export async function GET(request) {
         { email: { $regex: search, $options: "i" } },
       ];
     }
+
     if (["personal", "share"].includes(plan)) query.plan = plan;
     if (["pending", "active", "completed", "cancelled"].includes(status)) query.status = status;
     if (useCase) query.useCases = useCase;
@@ -74,7 +75,7 @@ export async function GET(request) {
       sortParam === "daysLow" ? { days: 1 } :
       { createdAt: -1 };
 
-    const orders = await Order.find(query).populate("owner", "mobile").sort(sort).limit(300);
+    const orders = await Order.find(query).populate("owner", "mobile").sort(sort).limit(300).lean();
     return NextResponse.json({ ok: true, orders: orders.map(serialize) });
   } catch (error) {
     return NextResponse.json({ ok: false, message: error.message || "Admin orders load failed" }, { status: 500 });
