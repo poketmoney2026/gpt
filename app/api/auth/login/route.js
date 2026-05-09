@@ -1,28 +1,35 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { createToken, setAuthCookie } from "@/lib/token";
+import { validateLoginPayload } from "@/lib/validation";
 import User from "@/models/User";
 
-const mobileRegex = /^01\d{9}$/;
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const mobile = String(body.mobile || "").trim();
-
-    if (!mobileRegex.test(mobile)) {
+    let body = {};
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json({ ok: false, message: "Login failed" }, { status: 400 });
+    }
+
+    const checked = validateLoginPayload(body);
+    if (!checked.ok) {
+      return NextResponse.json({ ok: false, message: checked.message }, { status: 400 });
     }
 
     await connectDB();
 
     const adminMobile = String(process.env.ADMIN_MOBILE || "").trim();
-    const role = adminMobile && mobile === adminMobile ? "admin" : "user";
+    const role = adminMobile && checked.mobile === adminMobile ? "admin" : "user";
 
     const user = await User.findOneAndUpdate(
-      { mobile },
-      { $set: { mobile, role, lastLoginAt: new Date() } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { mobile: checked.mobile },
+      { $set: { mobile: checked.mobile, role, lastLoginAt: new Date() } },
+      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
     ).lean();
 
     const token = createToken({ userId: String(user._id), mobile: user.mobile, role: user.role });
@@ -34,6 +41,9 @@ export async function POST(request) {
     setAuthCookie(response, token);
     return response;
   } catch (error) {
-    return NextResponse.json({ ok: false, message: error.message || "Login failed" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, message: error?.message || "Login failed" },
+      { status: 500 }
+    );
   }
 }

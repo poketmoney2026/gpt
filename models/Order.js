@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ORDER_STATUSES, PLAN_PRICES, USE_CASES } from "@/lib/constants";
 
 const OrderSchema = new mongoose.Schema(
   {
@@ -12,6 +13,7 @@ const OrderSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
       maxlength: 80,
     },
     orderMobile: {
@@ -19,6 +21,7 @@ const OrderSchema = new mongoose.Schema(
       required: true,
       trim: true,
       match: /^01\d{9}$/,
+      index: true,
     },
     email: {
       type: String,
@@ -26,11 +29,13 @@ const OrderSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       maxlength: 120,
+      index: true,
     },
     plan: {
       type: String,
-      enum: ["personal", "share"],
+      enum: Object.keys(PLAN_PRICES),
       required: true,
+      index: true,
     },
     days: {
       type: Number,
@@ -41,21 +46,28 @@ const OrderSchema = new mongoose.Schema(
     pricePerDay: {
       type: Number,
       required: true,
+      min: 0,
     },
     amount: {
       type: Number,
       required: true,
+      min: 0,
+      index: true,
     },
     useCases: {
       type: [String],
+      required: true,
       validate: {
-        validator: (value) => Array.isArray(value) && value.length === 3,
-        message: "Three use cases required",
+        validator(value) {
+          const unique = new Set(value || []);
+          return Array.isArray(value) && value.length === 3 && unique.size === 3 && value.every((item) => USE_CASES.includes(item));
+        },
+        message: "Three valid use cases required",
       },
     },
     status: {
       type: String,
-      enum: ["pending", "active", "completed", "cancelled"],
+      enum: ORDER_STATUSES,
       default: "pending",
       index: true,
     },
@@ -70,5 +82,8 @@ const OrderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+OrderSchema.index({ createdAt: -1 });
+OrderSchema.index({ customerName: "text", orderMobile: "text", email: "text" });
 
 export default mongoose.models.Order || mongoose.model("Order", OrderSchema);

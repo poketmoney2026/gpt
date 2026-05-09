@@ -3,6 +3,9 @@ import { connectDB } from "@/lib/db";
 import { getTokenPayload } from "@/lib/token";
 import User from "@/models/User";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const payload = await getTokenPayload();
@@ -11,16 +14,25 @@ export async function GET() {
     }
 
     await connectDB();
-    const user = await User.findById(payload.userId).select("mobile role createdAt").lean();
+    const user = await User.findById(payload.userId).select("mobile role createdAt lastLoginAt").lean();
     if (!user) {
       return NextResponse.json({ ok: false, user: null }, { status: 401 });
     }
 
     return NextResponse.json({
       ok: true,
-      user: { id: String(user._id), mobile: user.mobile, role: user.role, createdAt: user.createdAt },
+      user: {
+        id: String(user._id),
+        mobile: user.mobile,
+        role: user.role,
+        createdAt: user.createdAt,
+        lastLoginAt: user.lastLoginAt,
+      },
     });
   } catch (error) {
-    return NextResponse.json({ ok: false, message: error.message || "Auth failed" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, message: error?.message || "Auth failed" },
+      { status: 500 }
+    );
   }
 }
